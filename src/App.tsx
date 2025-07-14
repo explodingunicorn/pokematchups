@@ -127,6 +127,7 @@ function App() {
   return (
     <div style={{ maxWidth: 700, margin: "2rem auto", padding: 20 }}>
       <h1>Pokémon TCG Matchup Analyzer</h1>
+      <p>Please use data from <a className="text-blue-700" href="https://www.trainerhill.com/meta?game=PTCG">TrainerHill's meta analysis</a> to use this tool. You can export the csv data from trainerhill to upload here.</p>
       <Input type="file" accept=".csv" onChange={handleFileUpload} />
       {decks.length > 0 && (
         <div style={{ marginTop: 30 }}>
