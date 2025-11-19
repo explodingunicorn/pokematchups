@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { TournamentSimulator } from "@/components/TournamentSimulator";
 
 interface MatchupRow {
   deck1: string;
@@ -39,6 +41,9 @@ function calculateTrueWinRate(row: MatchupRow): number {
 }
 
 function App() {
+  const [activeTab, setActiveTab] = useState<"analyzer" | "simulator">(
+    "analyzer"
+  );
   const [cleanData, setCleanData] = useState<MatchupRow[]>(() => {
     const saved = localStorage.getItem("pmu_cleanData");
     return saved ? JSON.parse(saved) : [];
@@ -47,18 +52,22 @@ function App() {
     const saved = localStorage.getItem("pmu_playRates");
     return saved ? JSON.parse(saved) : {};
   });
-  const [results, setResults] = useState<{ [deck: string]: number } | null>(() => {
-    const saved = localStorage.getItem("pmu_results");
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [results, setResults] = useState<{ [deck: string]: number } | null>(
+    () => {
+      const saved = localStorage.getItem("pmu_results");
+      return saved ? JSON.parse(saved) : null;
+    }
+  );
 
-  // Save to localStorage on change
+  // Save to localStorage whenever state changes
   useEffect(() => {
     localStorage.setItem("pmu_cleanData", JSON.stringify(cleanData));
   }, [cleanData]);
+
   useEffect(() => {
     localStorage.setItem("pmu_playRates", JSON.stringify(playRates));
   }, [playRates]);
+
   useEffect(() => {
     localStorage.setItem("pmu_results", JSON.stringify(results));
   }, [results]);
@@ -113,70 +122,110 @@ function App() {
     setResults(sumProducts);
   };
 
-  const handleReset = () => {
-    setCleanData([]);
-    setPlayRates({});
-    setResults(null);
-    localStorage.removeItem("pmu_cleanData");
-    localStorage.removeItem("pmu_playRates");
-    localStorage.removeItem("pmu_results");
-  };
-
-  const decks = Object.keys(playRates);
+  const decks = Array.from(new Set(cleanData.map((row) => row.deck1)));
 
   return (
-    <div style={{ maxWidth: 700, margin: "2rem auto", padding: 20 }}>
-      <h1>Pokémon TCG Matchup Analyzer</h1>
-      <p>Please use data from <a className="text-blue-700" href="https://www.trainerhill.com/meta?game=PTCG">TrainerHill's meta analysis</a> to use this tool. You can export the csv data from trainerhill to upload here.</p>
-      <Input type="file" accept=".csv" onChange={handleFileUpload} />
-      {decks.length > 0 && (
-        <div style={{ marginTop: 30 }}>
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Deck</TableHead>
-                  <TableHead>Play Rate (%)</TableHead>
-                  {results && <TableHead>Result</TableHead>}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {decks.map((deck) => (
-                  <TableRow key={deck}>
-                    <TableCell>{deck}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={0.01}
-                        value={playRates[deck]}
-                        onChange={(e) => handlePlayRateChange(deck, e.target.value)}
-                        className="w-24"
-                        disabled={!!results}
-                      />
-                    </TableCell>
-                    {results && (
-                      <TableCell>
-                        {results[deck] !== undefined ? results[deck].toFixed(4) : "-"}
-                      </TableCell>
-                    )}
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <div className="flex gap-4 mt-5">
-            {!results && (
-              <Button onClick={handleCalculate}>
-                Calculate Sum Products
-              </Button>
+    <div style={{ maxWidth: 1200, margin: "2rem auto", padding: 20 }}>
+      <h1 className="text-3xl font-bold mb-6">Pokémon TCG Analysis Tools</h1>
+
+      {/* Tab Navigation */}
+      <div className="flex space-x-4 mb-6">
+        <Button
+          variant={activeTab === "analyzer" ? "default" : "outline"}
+          onClick={() => setActiveTab("analyzer")}
+        >
+          Matchup Analyzer
+        </Button>
+        <Button
+          variant={activeTab === "simulator" ? "default" : "outline"}
+          onClick={() => setActiveTab("simulator")}
+        >
+          Tournament Simulator
+        </Button>
+      </div>
+
+      {activeTab === "analyzer" && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Matchup Analyzer</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">
+              Please use data from{" "}
+              <a
+                className="text-blue-700"
+                href="https://www.trainerhill.com/meta?game=PTCG"
+              >
+                TrainerHill's meta analysis
+              </a>{" "}
+              to use this tool. You can export the csv data from trainerhill to
+              upload here.
+            </p>
+            <Input
+              type="file"
+              accept=".csv"
+              onChange={handleFileUpload}
+              className="mb-6"
+            />
+
+            {decks.length > 0 && (
+              <div>
+                <div className="rounded-md border">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Deck</TableHead>
+                        <TableHead>Play Rate (%)</TableHead>
+                        {results && <TableHead>Result</TableHead>}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {decks.map((deck) => (
+                        <TableRow key={deck}>
+                          <TableCell>{deck}</TableCell>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              step="0.1"
+                              value={playRates[deck] || ""}
+                              onChange={(e) =>
+                                handlePlayRateChange(deck, e.target.value)
+                              }
+                              placeholder="Enter play rate"
+                            />
+                          </TableCell>
+                          {results && (
+                            <TableCell>
+                              {(results[deck] * 100).toFixed(2)}%
+                            </TableCell>
+                          )}
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+                <Button onClick={handleCalculate} className="mt-4">
+                  Calculate Expected Win Rates
+                </Button>
+              </div>
             )}
-            <Button onClick={handleReset} variant="secondary">
-              Reset
-            </Button>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {activeTab === "simulator" && (
+        <TournamentSimulator
+          matchupData={cleanData.map((row) => ({
+            deck1: row.deck1,
+            deck2: row.deck2,
+            wins: Number(row.wins),
+            losses: Number(row.losses),
+            ties: row.ties !== undefined ? Number(row.ties) : undefined,
+            total: row.total !== undefined ? Number(row.total) : undefined,
+            true_win_rate: row.true_win_rate,
+          }))}
+          playRates={playRates}
+        />
       )}
     </div>
   );

@@ -1,0 +1,125 @@
+import type {
+  BatchResults,
+  TournamentConfig,
+  Player,
+} from "../types/tournament";
+import { tourneySim } from "../utils/tournamentSimulator";
+
+export interface WorkerMessage {
+  type: "start";
+  config: TournamentConfig;
+  numSimulations: number;
+}
+
+export interface WorkerResponse {
+  type: "progress" | "complete" | "error";
+  progress?: number;
+  currentSimulation?: number;
+  totalSimulations?: number;
+  results?: BatchResults;
+  error?: string;
+}
+
+self.onmessage = (event: MessageEvent<WorkerMessage>) => {
+  const { type, config, numSimulations } = event.data;
+
+  if (type === "start") {
+    try {
+      const results = runBatchSimulations(config, numSimulations);
+      const response: WorkerResponse = {
+        type: "complete",
+        results,
+      };
+      self.postMessage(response);
+    } catch (error) {
+      const response: WorkerResponse = {
+        type: "error",
+        error: error instanceof Error ? error.message : "Unknown error",
+      };
+      self.postMessage(response);
+    }
+  }
+};
+
+function runBatchSimulations(
+  config: TournamentConfig,
+  numSimulations: number = 1000
+): BatchResults {
+  const t16Map = new Map<string, number>();
+  const t32Map = new Map<string, number>();
+  const t64Map = new Map<string, number>();
+  const t128Map = new Map<string, number>();
+  const t256Map = new Map<string, number>();
+  const day2Map = new Map<string, number>();
+
+  // Initialize maps
+  config.matchupNames.forEach((deck) => {
+    t16Map.set(deck, 0);
+    t32Map.set(deck, 0);
+    t64Map.set(deck, 0);
+    t128Map.set(deck, 0);
+    t256Map.set(deck, 0);
+    day2Map.set(deck, 0);
+  });
+
+  const totalSimulations = 2 * numSimulations;
+  let day1Records: Player[] | undefined = undefined;
+
+  for (let simNum = 1; simNum <= totalSimulations; simNum++) {
+    const isDay2 = simNum % 2 === 0;
+    const simConfig = { ...config, isDay2 };
+
+    // Pass useLocalStorage: false to avoid localStorage access in worker
+    // For Day 2, pass the Day 1 records from the previous simulation
+    const results = tourneySim(simConfig, {
+      useLocalStorage: false,
+      day1Records: isDay2 ? day1Records : undefined,
+    });
+
+    // Store Day 1 records for the next Day 2 simulation
+    if (!isDay2) {
+      day1Records = results.allRecords;
+    }
+
+    if (isDay2) {
+      const allRecords = results.allRecords;
+
+      const top16Decks = allRecords.slice(0, 16).map((p) => p.deck);
+      const top32Decks = allRecords.slice(0, 32).map((p) => p.deck);
+      const top64Decks = allRecords.slice(0, 64).map((p) => p.deck);
+      const top128Decks = allRecords.slice(0, 128).map((p) => p.deck);
+      const top256Decks = allRecords.slice(0, 256).map((p) => p.deck);
+      const allDay2Decks = allRecords.map((p) => p.deck);
+
+      config.matchupNames.forEach((deck) => {
+        const count16 = top16Decks.filter((d) => d === deck).length;
+        const count32 = top32Decks.filter((d) => d === deck).length;
+        const count64 = top64Decks.filter((d) => d === deck).length;
+        const count128 = top128Decks.filter((d) => d === deck).length;
+        const count256 = top256Decks.filter((d) => d === deck).length;
+        const countDay2 = allDay2Decks.filter((d) => d === deck).length;
+
+        t16Map.set(deck, t16Map.get(deck)! + count16);
+        t32Map.set(deck, t32Map.get(deck)! + count32);
+        t64Map.set(deck, t64Map.get(deck)! + count64);
+        t128Map.set(deck, t128Map.get(deck)! + count128);
+        t256Map.set(deck, t256Map.get(deck)! + count256);
+        day2Map.set(deck, day2Map.get(deck)! + countDay2);
+      });
+
+      // Send progress update every 10 simulations
+      if (simNum % 10 === 0) {
+        const progress = (simNum / totalSimulations) * 100;
+        const response: WorkerResponse = {
+          type: "progress",
+          progress,
+          currentSimulation: simNum / 2, // Divide by 2 since we count day1+day2 as one simulation
+          totalSimulations: numSimulations,
+        };
+        self.postMessage(response);
+      }
+    }
+  }
+
+  return { t16Map, t32Map, t64Map, t128Map, t256Map, day2Map };
+}
