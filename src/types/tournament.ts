@@ -24,6 +24,8 @@ export interface TournamentConfig {
   n_players: number;
   skillPercents: number[];
   isDay2: boolean;
+  tuffEnabled?: { [deck: string]: boolean };
+  tuffCounts?: { [deck: string]: number };
 }
 
 export interface SimulationResults {
@@ -38,4 +40,5 @@ export interface BatchResults {
   t128Map: Map<string, number>;
   t256Map: Map<string, number>;
   day2Map: Map<string, number>;
+  day1Map: Map<string, number>;
 }

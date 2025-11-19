@@ -19,12 +19,46 @@ export function tourneySim(
 
   const useLocalStorage = options?.useLocalStorage ?? true;
   const day2 = isDay2;
-  const normalizedMetaPercentages = metaPercentages.map(
-    (p) => p / metaPercentages.reduce((a, b) => a + b, 0)
+
+  // Calculate total percentage
+  const totalPercentage = metaPercentages.reduce((a, b) => a + b, 0);
+
+  // Determine if we need an "Other" deck
+  let adjustedMetaPercentages = [...metaPercentages];
+  let adjustedMatchupNames = [...matchupNames];
+  let adjustedSkillPercents = [...skillPercents];
+  let adjustedMatchupMatrix = matchupMatrix.map((row) => [...row]);
+
+  if (totalPercentage < 100) {
+    // Add "Other" deck with remaining percentage
+    const otherPercentage = 100 - totalPercentage;
+    adjustedMetaPercentages.push(otherPercentage);
+    adjustedMatchupNames.push("Other");
+    adjustedSkillPercents.push(5); // 5% skilled players for Other deck
+
+    // Add matchup data for "Other" deck (40% win rate against all decks)
+    // Other decks have 60% win rate against "Other"
+    adjustedMatchupMatrix.forEach((row) => row.push(0.6));
+    const otherRow = new Array(adjustedMatchupNames.length - 1).fill(0.4);
+    otherRow.push(0.5); // 50% against itself
+    adjustedMatchupMatrix.push(otherRow);
+  }
+
+  const normalizedMetaPercentages = adjustedMetaPercentages.map(
+    (p) => p / adjustedMetaPercentages.reduce((a, b) => a + b, 0)
   );
   const numDeckPlayers = normalizedMetaPercentages.map((p) =>
     Math.round(n_players * p)
   );
+
+  // Adjust for rounding errors to ensure we have exactly n_players
+  const totalPlayers = numDeckPlayers.reduce((a, b) => a + b, 0);
+  if (totalPlayers !== n_players) {
+    const diff = n_players - totalPlayers;
+    // Add/subtract the difference to the largest deck
+    const maxIndex = numDeckPlayers.indexOf(Math.max(...numDeckPlayers));
+    numDeckPlayers[maxIndex] += diff;
+  }
 
   let allRecords: Player[];
   let numRounds: number;
@@ -57,14 +91,21 @@ export function tourneySim(
     numRounds = 8;
     allRecords = createInitialPlayers(
       numDeckPlayers,
-      matchupNames,
-      skillPercents
+      adjustedMatchupNames,
+      adjustedSkillPercents,
+      config.tuffEnabled,
+      config.tuffCounts
     );
   }
 
   // Run tournament rounds
   for (let r = 1; r <= numRounds; r++) {
-    allRecords = runRound(allRecords, matchupNames, matchupMatrix, day2);
+    allRecords = runRound(
+      allRecords,
+      adjustedMatchupNames,
+      adjustedMatchupMatrix,
+      day2
+    );
   }
 
   // Sort by match points
@@ -85,7 +126,9 @@ export function tourneySim(
 function createInitialPlayers(
   numDeckPlayers: number[],
   matchupNames: string[],
-  skillPercents: number[]
+  skillPercents: number[],
+  tuffEnabled?: { [deck: string]: boolean },
+  tuffCounts?: { [deck: string]: number }
 ): Player[] {
   const allRecords: Player[] = [];
   let ids = 1;
@@ -100,17 +143,32 @@ function createInitialPlayers(
     const skillPercent = skillPercents[deckIndex];
     const playerCount = numDeckPlayers[deckIndex];
 
+    // Check if TUFF is enabled for this deck
+    const isTuffEnabled = tuffEnabled?.[deckName] || false;
+    const tuffCount = tuffCounts?.[deckName] || 0;
+
     // Convert percentage to "every Xth player"
     // e.g., 20% = every 5th player, 10% = every 10th player
     const everyX = skillPercent > 0 ? Math.round(100 / skillPercent) : Infinity;
 
     for (let j = 1; j <= playerCount; j++) {
+      let skill = 0;
+
+      // Assign TUFF players first (highest skill: 0.4)
+      if (isTuffEnabled && j <= tuffCount) {
+        skill = 0.4;
+      }
+      // Then assign skilled players (skill: 0.2)
+      else if (everyX !== Infinity && j % everyX === 0) {
+        skill = 0.2;
+      }
+
       const player: Player = {
         deck: deckName,
         matchPoints: 0,
         id: ids,
         opponents: [],
-        skill: everyX !== Infinity && j % everyX === 0 ? 0.2 : 0,
+        skill,
       };
 
       allRecords.push(player);

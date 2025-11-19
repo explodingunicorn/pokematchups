@@ -2,6 +2,15 @@ import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Switch } from "@/components/ui/switch";
+import {
+  Table,
+  TableHeader,
+  TableBody,
+  TableRow,
+  TableHead,
+  TableCell,
+} from "@/components/ui/table";
 import type {
   TournamentConfig,
   MatchupData,
@@ -30,6 +39,10 @@ export function TournamentSimulator({
   const [skillPercentages, setSkillPercentages] = useState<{
     [deck: string]: number;
   }>({});
+  const [tuffEnabled, setTuffEnabled] = useState<{ [deck: string]: boolean }>(
+    {}
+  );
+  const [tuffCounts, setTuffCounts] = useState<{ [deck: string]: number }>({});
   const [results, setResults] = useState<BatchResults | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -44,14 +57,20 @@ export function TournamentSimulator({
     if (deckNames.length > 0 && Object.keys(metaPercentages).length === 0) {
       const initialMeta: { [deck: string]: number } = {};
       const initialSkill: { [deck: string]: number } = {};
+      const initialTuffEnabled: { [deck: string]: boolean } = {};
+      const initialTuffCounts: { [deck: string]: number } = {};
 
       deckNames.forEach((deck) => {
         initialMeta[deck] = 5.88; // Default equal distribution
         initialSkill[deck] = 10; // Default 10% skilled players
+        initialTuffEnabled[deck] = false; // TUFF disabled by default
+        initialTuffCounts[deck] = 5; // Default 5 TUFF players
       });
 
       setMetaPercentages(initialMeta);
       setSkillPercentages(initialSkill);
+      setTuffEnabled(initialTuffEnabled);
+      setTuffCounts(initialTuffCounts);
     }
   }, [deckNames]);
 
@@ -140,6 +159,8 @@ export function TournamentSimulator({
       n_players: nPlayers,
       skillPercents: deckNames.map((deck) => skillPercentages[deck] || 0),
       isDay2: false,
+      tuffEnabled,
+      tuffCounts,
     };
 
     const message: WorkerMessage = {
@@ -197,7 +218,7 @@ export function TournamentSimulator({
           </div>
 
           {playRates && Object.keys(playRates).length > 0 && (
-            <div>
+            <div className="mb-4">
               <Button
                 onClick={importPlayRates}
                 variant="outline"
@@ -208,52 +229,81 @@ export function TournamentSimulator({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div>
-              <h3 className="text-lg font-medium mb-2">Meta Percentages</h3>
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Deck</TableHead>
+                  <TableHead>Meta %</TableHead>
+                  <TableHead>Skill %</TableHead>
+                  <TableHead>TUFF</TableHead>
+                  <TableHead>TUFF Count</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 {deckNames.map((deck) => (
-                  <div key={deck} className="flex items-center space-x-2">
-                    <label className="text-sm flex-1">{deck}</label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      className="w-20"
-                      value={metaPercentages[deck] || 0}
-                      onChange={(e) =>
-                        setMetaPercentages((prev) => ({
-                          ...prev,
-                          [deck]: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
+                  <TableRow key={deck}>
+                    <TableCell className="font-medium">{deck}</TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        className="w-20"
+                        value={metaPercentages[deck] || 0}
+                        onChange={(e) =>
+                          setMetaPercentages((prev) => ({
+                            ...prev,
+                            [deck]: Number(e.target.value),
+                          }))
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Input
+                        type="number"
+                        step="0.1"
+                        className="w-20"
+                        value={skillPercentages[deck] || 0}
+                        onChange={(e) =>
+                          setSkillPercentages((prev) => ({
+                            ...prev,
+                            [deck]: Number(e.target.value),
+                          }))
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Switch
+                        checked={tuffEnabled[deck] || false}
+                        onCheckedChange={(checked: boolean) =>
+                          setTuffEnabled((prev) => ({
+                            ...prev,
+                            [deck]: checked,
+                          }))
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
+                      {tuffEnabled[deck] && (
+                        <Input
+                          type="number"
+                          step="1"
+                          min="0"
+                          className="w-20"
+                          value={tuffCounts[deck] || 0}
+                          onChange={(e) =>
+                            setTuffCounts((prev) => ({
+                              ...prev,
+                              [deck]: Number(e.target.value),
+                            }))
+                          }
+                        />
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-lg font-medium mb-2">Skill Percentages</h3>
-              <div className="grid grid-cols-1 gap-2 max-h-60 overflow-y-auto">
-                {deckNames.map((deck) => (
-                  <div key={deck} className="flex items-center space-x-2">
-                    <label className="text-sm flex-1">{deck}</label>
-                    <Input
-                      type="number"
-                      step="0.1"
-                      className="w-20"
-                      value={skillPercentages[deck] || 0}
-                      onChange={(e) =>
-                        setSkillPercentages((prev) => ({
-                          ...prev,
-                          [deck]: Number(e.target.value),
-                        }))
-                      }
-                    />
-                  </div>
-                ))}
-              </div>
-            </div>
+              </TableBody>
+            </Table>
           </div>
 
           <Button
@@ -283,14 +333,7 @@ export function TournamentSimulator({
         </CardContent>
       </Card>
 
-      {results && (
-        <TournamentCharts
-          results={results}
-          deckNames={deckNames}
-          metaPercentages={metaPercentages}
-          nPlayers={nPlayers}
-        />
-      )}
+      {results && <TournamentCharts results={results} deckNames={deckNames} />}
     </div>
   );
 }
