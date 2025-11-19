@@ -170,7 +170,7 @@ export function TournamentCharts({
   };
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
       <Card>
         <CardHeader>
           <CardTitle>Day 2 Threshold Numbers</CardTitle>

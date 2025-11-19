@@ -17,10 +17,12 @@ import type {
   BatchResults,
 } from "@/types/tournament";
 import { TournamentCharts } from "./TournamentCharts";
+import { LimitlessImportModal } from "./LimitlessImportModal";
 import type {
   WorkerMessage,
   WorkerResponse,
 } from "@/workers/tournamentSimulator.worker";
+import type { MetaPercentages } from "@/services/limitlessApi";
 
 interface TournamentSimulatorProps {
   matchupData: MatchupData[];
@@ -31,22 +33,43 @@ export function TournamentSimulator({
   matchupData,
   playRates,
 }: TournamentSimulatorProps) {
-  const [nPlayers, setNPlayers] = useState(2600);
-  const [numSimulations, setNumSimulations] = useState(100);
+  const [nPlayers, setNPlayers] = useState(() => {
+    const saved = localStorage.getItem("tournament_nPlayers");
+    return saved ? Number(saved) : 2600;
+  });
+  const [numSimulations, setNumSimulations] = useState(() => {
+    const saved = localStorage.getItem("tournament_numSimulations");
+    return saved ? Number(saved) : 100;
+  });
   const [metaPercentages, setMetaPercentages] = useState<{
     [deck: string]: number;
-  }>({});
+  }>(() => {
+    const saved = localStorage.getItem("tournament_metaPercentages");
+    return saved ? JSON.parse(saved) : {};
+  });
   const [skillPercentages, setSkillPercentages] = useState<{
     [deck: string]: number;
-  }>({});
+  }>(() => {
+    const saved = localStorage.getItem("tournament_skillPercentages");
+    return saved ? JSON.parse(saved) : {};
+  });
   const [tuffEnabled, setTuffEnabled] = useState<{ [deck: string]: boolean }>(
-    {}
+    () => {
+      const saved = localStorage.getItem("tournament_tuffEnabled");
+      return saved ? JSON.parse(saved) : {};
+    }
   );
-  const [tuffCounts, setTuffCounts] = useState<{ [deck: string]: number }>({});
+  const [tuffCounts, setTuffCounts] = useState<{ [deck: string]: number }>(
+    () => {
+      const saved = localStorage.getItem("tournament_tuffCounts");
+      return saved ? JSON.parse(saved) : {};
+    }
+  );
   const [results, setResults] = useState<BatchResults | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [currentSimulation, setCurrentSimulation] = useState(0);
+  const [isLimitlessModalOpen, setIsLimitlessModalOpen] = useState(false);
   const workerRef = useRef<Worker | null>(null);
 
   // Get unique deck names from matchup data
@@ -125,6 +148,37 @@ export function TournamentSimulator({
     };
   }, []);
 
+  // Save to localStorage whenever state changes
+  useEffect(() => {
+    localStorage.setItem("tournament_nPlayers", String(nPlayers));
+  }, [nPlayers]);
+
+  useEffect(() => {
+    localStorage.setItem("tournament_numSimulations", String(numSimulations));
+  }, [numSimulations]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "tournament_metaPercentages",
+      JSON.stringify(metaPercentages)
+    );
+  }, [metaPercentages]);
+
+  useEffect(() => {
+    localStorage.setItem(
+      "tournament_skillPercentages",
+      JSON.stringify(skillPercentages)
+    );
+  }, [skillPercentages]);
+
+  useEffect(() => {
+    localStorage.setItem("tournament_tuffEnabled", JSON.stringify(tuffEnabled));
+  }, [tuffEnabled]);
+
+  useEffect(() => {
+    localStorage.setItem("tournament_tuffCounts", JSON.stringify(tuffCounts));
+  }, [tuffCounts]);
+
   const createMatchupMatrix = (): number[][] => {
     const matrix: number[][] = Array(deckNames.length)
       .fill(null)
@@ -172,6 +226,17 @@ export function TournamentSimulator({
     workerRef.current.postMessage(message);
   };
 
+  const handleLimitlessImport = (importedMeta: MetaPercentages) => {
+    // Update meta percentages with imported data
+    setMetaPercentages((prev) => {
+      const updated = { ...prev };
+      Object.entries(importedMeta).forEach(([deckName, percentage]) => {
+        updated[deckName] = percentage;
+      });
+      return updated;
+    });
+  };
+
   if (deckNames.length === 0) {
     return (
       <Card>
@@ -217,8 +282,8 @@ export function TournamentSimulator({
             </div>
           </div>
 
-          {playRates && Object.keys(playRates).length > 0 && (
-            <div className="mb-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            {playRates && Object.keys(playRates).length > 0 && (
               <Button
                 onClick={importPlayRates}
                 variant="outline"
@@ -226,8 +291,15 @@ export function TournamentSimulator({
               >
                 Import Play Rates from Matchup Analyzer
               </Button>
-            </div>
-          )}
+            )}
+            <Button
+              onClick={() => setIsLimitlessModalOpen(true)}
+              variant="outline"
+              className="w-full"
+            >
+              Import Meta from Limitless
+            </Button>
+          </div>
 
           <div className="rounded-md border">
             <Table>
@@ -334,6 +406,12 @@ export function TournamentSimulator({
       </Card>
 
       {results && <TournamentCharts results={results} deckNames={deckNames} />}
+
+      <LimitlessImportModal
+        open={isLimitlessModalOpen}
+        onOpenChange={setIsLimitlessModalOpen}
+        onImport={handleLimitlessImport}
+      />
     </div>
   );
 }
