@@ -11,6 +11,12 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import type {
   TournamentConfig,
   MatchupData,
@@ -23,6 +29,7 @@ import type {
   WorkerResponse,
 } from "@/workers/tournamentSimulator.worker";
 import type { MetaPercentages } from "@/services/limitlessApi";
+import { Info } from "lucide-react";
 
 interface TournamentSimulatorProps {
   matchupData: MatchupData[];
@@ -253,165 +260,190 @@ export function TournamentSimulator({
   }
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Tournament Simulator</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Number of Players
-              </label>
-              <Input
-                type="number"
-                value={nPlayers}
-                onChange={(e) => setNPlayers(Number(e.target.value))}
-              />
+    <TooltipProvider>
+      <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Tournament Simulator</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Number of Players
+                </label>
+                <Input
+                  type="number"
+                  value={nPlayers}
+                  onChange={(e) => setNPlayers(Number(e.target.value))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Number of Simulations
+                </label>
+                <Input
+                  type="number"
+                  value={numSimulations}
+                  onChange={(e) => setNumSimulations(Number(e.target.value))}
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">
-                Number of Simulations
-              </label>
-              <Input
-                type="number"
-                value={numSimulations}
-                onChange={(e) => setNumSimulations(Number(e.target.value))}
-              />
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-            {playRates && Object.keys(playRates).length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+              {playRates && Object.keys(playRates).length > 0 && (
+                <Button
+                  onClick={importPlayRates}
+                  variant="outline"
+                  className="w-full"
+                >
+                  Import Play Rates from Matchup Analyzer
+                </Button>
+              )}
               <Button
-                onClick={importPlayRates}
+                onClick={() => setIsLimitlessModalOpen(true)}
                 variant="outline"
                 className="w-full"
               >
-                Import Play Rates from Matchup Analyzer
+                Import Meta from Limitless
               </Button>
-            )}
-            <Button
-              onClick={() => setIsLimitlessModalOpen(true)}
-              variant="outline"
-              className="w-full"
-            >
-              Import Meta from Limitless
-            </Button>
-          </div>
+            </div>
 
-          <div className="rounded-md border">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Deck</TableHead>
-                  <TableHead>Meta %</TableHead>
-                  <TableHead>Skill %</TableHead>
-                  <TableHead>TUFF</TableHead>
-                  <TableHead>TUFF Count</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {deckNames.map((deck) => (
-                  <TableRow key={deck}>
-                    <TableCell className="font-medium">{deck}</TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        className="w-20"
-                        value={metaPercentages[deck] || 0}
-                        onChange={(e) =>
-                          setMetaPercentages((prev) => ({
-                            ...prev,
-                            [deck]: Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Input
-                        type="number"
-                        step="0.1"
-                        className="w-20"
-                        value={skillPercentages[deck] || 0}
-                        onChange={(e) =>
-                          setSkillPercentages((prev) => ({
-                            ...prev,
-                            [deck]: Number(e.target.value),
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={tuffEnabled[deck] || false}
-                        onCheckedChange={(checked: boolean) =>
-                          setTuffEnabled((prev) => ({
-                            ...prev,
-                            [deck]: checked,
-                          }))
-                        }
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {tuffEnabled[deck] && (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Deck</TableHead>
+                    <TableHead>Meta %</TableHead>
+                    <TableHead>Skill %</TableHead>
+                    <TableHead>
+                      <div className="flex items-center gap-1">
+                        TUFF
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-4 w-4 text-gray-500 cursor-help" />
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>
+                              TUFF (Tournament-level) players are pro players
+                              with significant matchup advantages. When enabled,
+                              the specified number of players for this deck will
+                              have a 0.4 skill bonus (vs 0.2 for skilled
+                              players), representing superior play and matchup
+                              knowledge.
+                            </p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </div>
+                    </TableHead>
+                    <TableHead>TUFF Count</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {deckNames.map((deck) => (
+                    <TableRow key={deck}>
+                      <TableCell className="font-medium">{deck}</TableCell>
+                      <TableCell>
                         <Input
                           type="number"
-                          step="1"
-                          min="0"
+                          step="0.1"
                           className="w-20"
-                          value={tuffCounts[deck] || 0}
+                          value={metaPercentages[deck] || 0}
                           onChange={(e) =>
-                            setTuffCounts((prev) => ({
+                            setMetaPercentages((prev) => ({
                               ...prev,
                               [deck]: Number(e.target.value),
                             }))
                           }
                         />
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          <Button
-            onClick={runSimulation}
-            disabled={isRunning}
-            className="w-full"
-          >
-            {isRunning ? "Running Simulation..." : "Run Tournament Simulation"}
-          </Button>
-
-          {isRunning && (
-            <div className="mt-4 space-y-2">
-              <div className="flex justify-between text-sm">
-                <span>Progress: {Math.round(progress)}%</span>
-                <span>
-                  Simulation {currentSimulation} of {numSimulations}
-                </span>
-              </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5">
-                <div
-                  className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
-                  style={{ width: `${progress}%` }}
-                ></div>
-              </div>
+                      </TableCell>
+                      <TableCell>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          className="w-20"
+                          value={skillPercentages[deck] || 0}
+                          onChange={(e) =>
+                            setSkillPercentages((prev) => ({
+                              ...prev,
+                              [deck]: Number(e.target.value),
+                            }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={tuffEnabled[deck] || false}
+                          onCheckedChange={(checked: boolean) =>
+                            setTuffEnabled((prev) => ({
+                              ...prev,
+                              [deck]: checked,
+                            }))
+                          }
+                        />
+                      </TableCell>
+                      <TableCell>
+                        {tuffEnabled[deck] && (
+                          <Input
+                            type="number"
+                            step="1"
+                            min="0"
+                            className="w-20"
+                            value={tuffCounts[deck] || 0}
+                            onChange={(e) =>
+                              setTuffCounts((prev) => ({
+                                ...prev,
+                                [deck]: Number(e.target.value),
+                              }))
+                            }
+                          />
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          )}
-        </CardContent>
-      </Card>
 
-      {results && <TournamentCharts results={results} deckNames={deckNames} />}
+            <Button
+              onClick={runSimulation}
+              disabled={isRunning}
+              className="w-full"
+            >
+              {isRunning
+                ? "Running Simulation..."
+                : "Run Tournament Simulation"}
+            </Button>
 
-      <LimitlessImportModal
-        open={isLimitlessModalOpen}
-        onOpenChange={setIsLimitlessModalOpen}
-        onImport={handleLimitlessImport}
-      />
-    </div>
+            {isRunning && (
+              <div className="mt-4 space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span>Progress: {Math.round(progress)}%</span>
+                  <span>
+                    Simulation {currentSimulation} of {numSimulations}
+                  </span>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2.5">
+                  <div
+                    className="bg-blue-600 h-2.5 rounded-full transition-all duration-300"
+                    style={{ width: `${progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {results && (
+          <TournamentCharts results={results} deckNames={deckNames} />
+        )}
+
+        <LimitlessImportModal
+          open={isLimitlessModalOpen}
+          onOpenChange={setIsLimitlessModalOpen}
+          onImport={handleLimitlessImport}
+        />
+      </div>
+    </TooltipProvider>
   );
 }
