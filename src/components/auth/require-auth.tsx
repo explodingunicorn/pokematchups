@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Card } from "@heroui/react";
 import { useAuth } from "@/components/providers/auth-provider";
 
 interface RequireAuthProps {
@@ -14,7 +14,7 @@ export function RequireAuth({ children }: RequireAuthProps) {
   if (loading) {
     return (
       <Card>
-        <CardBody>Checking your session...</CardBody>
+        <Card.Content>Checking your session...</Card.Content>
       </Card>
     );
   }
@@ -22,10 +22,10 @@ export function RequireAuth({ children }: RequireAuthProps) {
   if (!user) {
     return (
       <Card>
-        <CardHeader>
+        <Card.Header>
           <h3>Sign in required</h3>
-        </CardHeader>
-        <CardBody>Please sign in with Google to access this page.</CardBody>
+        </Card.Header>
+        <Card.Content>Please sign in with Google to access this page.</Card.Content>
       </Card>
     );
   }

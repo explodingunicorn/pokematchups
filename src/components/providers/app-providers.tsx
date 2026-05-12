@@ -1,6 +1,5 @@
 "use client";
 
-import { HeroUIProvider } from "@heroui/react";
 import { type ReactNode } from "react";
 import { MatchupProvider } from "@/components/providers/matchup-provider";
 import { AuthProvider } from "@/components/providers/auth-provider";
@@ -11,10 +10,8 @@ interface AppProvidersProps {
 
 export function AppProviders({ children }: AppProvidersProps) {
   return (
-    <HeroUIProvider>
-      <AuthProvider>
-        <MatchupProvider>{children}</MatchupProvider>
-      </AuthProvider>
-    </HeroUIProvider>
+    <AuthProvider>
+      <MatchupProvider>{children}</MatchupProvider>
+    </AuthProvider>
   );
 }

@@ -1,7 +1,15 @@
 "use client";
 
 import Papa from "papaparse";
-import { Button, Card, CardBody, CardHeader, Input, Link, Table, TableBody, TableCell, TableColumn, TableHeader, TableRow, Tooltip } from "@heroui/react";
+import {
+  Button,
+  Card,
+  Input,
+  Link,
+  Table,
+  Tooltip,
+  Separator,
+} from "@heroui/react";
 import { Info } from "lucide-react";
 import { useMemo } from "react";
 import { useMatchupStore } from "@/components/providers/matchup-provider";
@@ -74,44 +82,65 @@ export function MatchupAnalyzer() {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <h2>Matchup Analyzer</h2>
-      </CardHeader>
-      <CardBody>
-        <p>
+    <Card className="rounded-lg shadow-lg">
+      <Card.Header>
+        <div className="page-stack">
+          <h2 className="section-title">Matchup Analyzer</h2>
+          <p className="section-subtitle">
+            Upload matchup CSV data and compare deck expected performance into a projected meta.
+          </p>
+        </div>
+      </Card.Header>
+      <Separator />
+      <Card.Content>
+        <p className="section-subtitle">
           Please use data from{" "}
-          <Link isExternal href="https://www.trainerhill.com/meta?game=PTCG">
+          <Link
+            href="https://www.trainerhill.com/meta?game=PTCG"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             TrainerHill&apos;s meta analysis
+            <Link.Icon />
           </Link>{" "}
           and export CSV to upload.
         </p>
         <Input
           type="file"
           accept=".csv"
+          variant="secondary"
           onChange={(e) => handleFileUpload(e.target.files?.[0] ?? null)}
-          style={{ marginTop: 16, marginBottom: 24 }}
+          className="mt-4 mb-6"
         />
         {decks.length > 0 ? (
-          <>
-            <Table aria-label="Deck matchup analyzer table">
-              <TableHeader>
-                <TableColumn>Deck</TableColumn>
-                <TableColumn>Play Rate (%)</TableColumn>
-                <TableColumn>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
-                    Result
-                    <Tooltip content="The higher the percentage, the better the deck is positioned into the room.">
-                      <Info size={14} />
-                    </Tooltip>
-                  </span>
-                </TableColumn>
-              </TableHeader>
-              <TableBody>
+          <div className="page-stack">
+            <Table variant="secondary">
+              <Table.ScrollContainer>
+                <Table.Content aria-label="Deck matchup analyzer table" className="min-h-[260px]">
+                  <Table.Header>
+                    <Table.Column>Deck</Table.Column>
+                    <Table.Column>Play Rate (%)</Table.Column>
+                    <Table.Column>
+                      <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        Result
+                        <Tooltip delay={0}>
+                          <Tooltip.Trigger>
+                            <span className="inline-flex">
+                              <Info size={14} />
+                            </span>
+                          </Tooltip.Trigger>
+                          <Tooltip.Content>
+                            The higher the percentage, the better the deck is positioned into the room.
+                          </Tooltip.Content>
+                        </Tooltip>
+                      </span>
+                    </Table.Column>
+                  </Table.Header>
+                  <Table.Body>
                 {decks.map((deck) => (
-                  <TableRow key={deck}>
-                    <TableCell>{deck}</TableCell>
-                    <TableCell>
+                    <Table.Row key={deck} id={deck}>
+                      <Table.Cell>{deck}</Table.Cell>
+                      <Table.Cell>
                       <Input
                         type="number"
                         step="0.1"
@@ -121,20 +150,20 @@ export function MatchupAnalyzer() {
                         }
                         placeholder="Enter play rate"
                       />
-                    </TableCell>
-                    <TableCell>
-                      {results ? `${(results[deck] * 100).toFixed(2)}%` : "-"}
-                    </TableCell>
-                  </TableRow>
+                      </Table.Cell>
+                      <Table.Cell>{results ? `${(results[deck] * 100).toFixed(2)}%` : "-"}</Table.Cell>
+                    </Table.Row>
                 ))}
-              </TableBody>
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
             </Table>
-            <Button color="primary" onPress={handleCalculate} style={{ marginTop: 16 }}>
+            <Button variant="primary" onPress={handleCalculate}>
               Calculate Expected Win Rates
             </Button>
-          </>
+          </div>
         ) : null}
-      </CardBody>
+      </Card.Content>
     </Card>
   );
 }

@@ -1,26 +1,31 @@
 import Link from "next/link";
-import { Button, Card, CardBody, CardHeader } from "@heroui/react";
 
 export default function HomePage() {
   return (
-    <Card>
-      <CardHeader>
-        <h1>Pokemon TCG Analysis Tools</h1>
-      </CardHeader>
-      <CardBody style={{ display: "grid", gap: 12 }}>
-        <p>
+    <section className="rounded-lg bg-surface p-6 shadow-lg">
+      <div>
+        <h1 className="section-title">Pokemon TCG Analysis Tools</h1>
+      </div>
+      <div className="page-stack mt-4">
+        <p className="section-subtitle">
           This migration moves the app to Next.js SSR, HeroUI components, and a
           Supabase-backed auth/data foundation.
         </p>
         <div style={{ display: "flex", gap: 8 }}>
-          <Button as={Link} href="/analyzer" color="primary">
+          <Link
+            href="/analyzer"
+            className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground no-underline"
+          >
             Open Analyzer
-          </Button>
-          <Button as={Link} href="/simulator" variant="bordered">
+          </Link>
+          <Link
+            href="/simulator"
+            className="rounded-md border border-border px-4 py-2 text-sm font-medium text-foreground no-underline"
+          >
             Open Simulator
-          </Button>
+          </Link>
         </div>
-      </CardBody>
-    </Card>
+      </div>
+    </section>
   );
 }

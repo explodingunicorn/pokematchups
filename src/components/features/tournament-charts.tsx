@@ -10,7 +10,7 @@ import {
   Legend,
 } from "chart.js";
 import { Bar } from "react-chartjs-2";
-import { Card, CardBody, CardHeader } from "@heroui/react";
+import { Card, Separator } from "@heroui/react";
 import type { BatchResults } from "@/types/tournament";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -90,15 +90,16 @@ export function TournamentCharts({ results, deckNames }: TournamentChartsProps) 
   ];
 
   return (
-    <div style={{ display: "grid", gap: 24 }}>
+    <div className="results-grid">
       {sections.map((section) => (
-        <Card key={section.title}>
-          <CardHeader>
-            <h3>{section.title}</h3>
-          </CardHeader>
-          <CardBody>
+        <Card key={section.title} className="rounded-lg shadow-sm">
+          <Card.Header>
+            <h3 style={{ margin: 0 }}>{section.title}</h3>
+          </Card.Header>
+          <Separator />
+          <Card.Content>
             <Bar data={section.data} options={chartOptions} />
-          </CardBody>
+          </Card.Content>
         </Card>
       ))}
     </div>

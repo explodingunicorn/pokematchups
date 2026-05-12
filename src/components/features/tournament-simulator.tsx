@@ -4,17 +4,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Button,
   Card,
-  CardBody,
-  CardHeader,
   Input,
-  Progress,
+  Label,
+  ProgressBar,
+  TextField,
   Switch,
+  Separator,
   Table,
-  TableBody,
-  TableCell,
-  TableColumn,
-  TableHeader,
-  TableRow,
   Tooltip,
 } from "@heroui/react";
 import { Info } from "lucide-react";
@@ -182,59 +178,78 @@ export function TournamentSimulatorFeature() {
 
   if (!deckNames.length) {
     return (
-      <Card>
-        <CardHeader>
-          <h2>Tournament Simulator</h2>
-        </CardHeader>
-        <CardBody>Please upload matchup data first to use the simulator.</CardBody>
+      <Card className="rounded-lg shadow-md">
+        <Card.Header>
+          <h2 className="section-title">Tournament Simulator</h2>
+        </Card.Header>
+        <Card.Content>Please upload matchup data first to use the simulator.</Card.Content>
       </Card>
     );
   }
 
   return (
-    <div style={{ display: "grid", gap: 24 }}>
-      <Card>
-        <CardHeader>
-          <h2>Tournament Simulator</h2>
-        </CardHeader>
-        <CardBody style={{ display: "grid", gap: 16 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-            <Input
-              type="number"
-              label="Number of Players"
-              value={String(nPlayers)}
-              onChange={(e) => setNPlayers(Number(e.target.value))}
-            />
-            <Input
-              type="number"
-              label="Number of Simulations"
-              value={String(numSimulations)}
-              onChange={(e) => setNumSimulations(Number(e.target.value))}
-            />
+    <div className="results-grid">
+      <Card className="rounded-lg shadow-lg">
+        <Card.Header>
+          <div className="page-stack">
+            <h2 className="section-title">Tournament Simulator</h2>
+            <p className="section-subtitle">
+              Configure player pool assumptions and run Monte Carlo simulations for Day 2 conversion.
+            </p>
           </div>
-          <Button variant="bordered" onPress={importPlayRates}>
+        </Card.Header>
+        <Separator />
+        <Card.Content className="page-stack">
+          <div className="two-col">
+            <TextField type="number">
+              <Label>Number of Players</Label>
+              <Input
+                variant="secondary"
+                value={String(nPlayers)}
+                onChange={(e) => setNPlayers(Number(e.target.value))}
+              />
+            </TextField>
+            <TextField type="number">
+              <Label>Number of Simulations</Label>
+              <Input
+                variant="secondary"
+                value={String(numSimulations)}
+                onChange={(e) => setNumSimulations(Number(e.target.value))}
+              />
+            </TextField>
+          </div>
+          <Button variant="secondary" onPress={importPlayRates}>
             Import Play Rates from Matchup Analyzer
           </Button>
-          <Table aria-label="Tournament setup table">
-            <TableHeader>
-              <TableColumn>Deck</TableColumn>
-              <TableColumn>Meta %</TableColumn>
-              <TableColumn>Skill %</TableColumn>
-              <TableColumn>
-                <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
-                  TUFF
-                  <Tooltip content="Tournament-level players with stronger expected edge.">
-                    <Info size={14} />
-                  </Tooltip>
-                </span>
-              </TableColumn>
-              <TableColumn>TUFF Count</TableColumn>
-            </TableHeader>
-            <TableBody>
+          <Table variant="secondary">
+            <Table.ScrollContainer>
+              <Table.Content aria-label="Tournament setup table">
+                <Table.Header>
+                  <Table.Column>Deck</Table.Column>
+                  <Table.Column>Meta %</Table.Column>
+                  <Table.Column>Skill %</Table.Column>
+                  <Table.Column>
+                    <span style={{ display: "inline-flex", gap: 4, alignItems: "center" }}>
+                      TUFF
+                      <Tooltip delay={0}>
+                        <Tooltip.Trigger>
+                          <span className="inline-flex">
+                            <Info size={14} />
+                          </span>
+                        </Tooltip.Trigger>
+                        <Tooltip.Content>
+                          Tournament-level players with stronger expected edge.
+                        </Tooltip.Content>
+                      </Tooltip>
+                    </span>
+                  </Table.Column>
+                  <Table.Column>TUFF Count</Table.Column>
+                </Table.Header>
+                <Table.Body>
               {deckNames.map((deck) => (
-                <TableRow key={deck}>
-                  <TableCell>{deck}</TableCell>
-                  <TableCell>
+                  <Table.Row key={deck} id={deck}>
+                    <Table.Cell>{deck}</Table.Cell>
+                    <Table.Cell>
                     <Input
                       type="number"
                       step="0.1"
@@ -246,8 +261,8 @@ export function TournamentSimulatorFeature() {
                         }))
                       }
                     />
-                  </TableCell>
-                  <TableCell>
+                    </Table.Cell>
+                    <Table.Cell>
                     <Input
                       type="number"
                       step="0.1"
@@ -259,16 +274,20 @@ export function TournamentSimulatorFeature() {
                         }))
                       }
                     />
-                  </TableCell>
-                  <TableCell>
+                    </Table.Cell>
+                    <Table.Cell>
                     <Switch
                       isSelected={tuffEnabled[deck] || false}
-                      onValueChange={(checked) =>
+                      onChange={(checked) =>
                         setTuffEnabled((prev) => ({ ...prev, [deck]: checked }))
                       }
-                    />
-                  </TableCell>
-                  <TableCell>
+                    >
+                      <Switch.Control>
+                        <Switch.Thumb />
+                      </Switch.Control>
+                    </Switch>
+                    </Table.Cell>
+                    <Table.Cell>
                     {tuffEnabled[deck] ? (
                       <Input
                         type="number"
@@ -284,26 +303,34 @@ export function TournamentSimulatorFeature() {
                     ) : (
                       "-"
                     )}
-                  </TableCell>
-                </TableRow>
+                    </Table.Cell>
+                  </Table.Row>
               ))}
-            </TableBody>
+                </Table.Body>
+              </Table.Content>
+            </Table.ScrollContainer>
           </Table>
-          <Button color="primary" onPress={runSimulation} isDisabled={isRunning}>
+          <Button variant="primary" onPress={runSimulation} isDisabled={isRunning}>
             {isRunning ? "Running Simulation..." : "Run Tournament Simulation"}
           </Button>
           {isRunning ? (
-            <div style={{ display: "grid", gap: 8 }}>
-              <div style={{ display: "flex", justifyContent: "space-between" }}>
+            <div className="page-stack">
+              <div style={{ display: "flex", justifyContent: "space-between", gap: 8 }}>
                 <span>Progress: {Math.round(progress)}%</span>
                 <span>
                   Simulation {currentSimulation} of {numSimulations}
                 </span>
               </div>
-              <Progress value={progress} />
+              <ProgressBar value={progress} aria-label="Simulation progress">
+                <Label>Progress</Label>
+                <ProgressBar.Output />
+                <ProgressBar.Track>
+                  <ProgressBar.Fill />
+                </ProgressBar.Track>
+              </ProgressBar>
             </div>
           ) : null}
-        </CardBody>
+        </Card.Content>
       </Card>
       {results ? <TournamentCharts results={results} deckNames={deckNames} /> : null}
     </div>
